@@ -65,6 +65,7 @@
       <EmbeddedResource Include="Resources\Assets\xr_settings" />
     </ItemGroup>
     <ItemGroup>
+      <Folder Include="Patches\" />
       <Folder Include="Resources\Assets\" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>

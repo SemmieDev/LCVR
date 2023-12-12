@@ -4,11 +4,21 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using BepInEx;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace LCVR {
     [BepInPlugin("semmiedev.lcvr", "LCVR", "1.0.0")]
     public class LCVR : BaseUnityPlugin {
+        public LCVR Instance { get; private set; }
+
+        private PropertyInfo xrGeneralSettingsInstanceProperty;
+        private PropertyInfo xrGeneralSettingsManagerProperty;
+        private MethodInfo xrManagerSettingsInitializeLoaderSyncMethod;
+        private MethodInfo xrManagerSettingsStartSubsystemsMethod;
+
         private void Awake() {
+            Instance = this;
+
             var extractionPath = Paths.CachePath + @"\LCVR";
 
             if (!Directory.Exists(extractionPath)) {
@@ -65,30 +75,58 @@ namespace LCVR {
                 Logger.LogInfo($"Loaded {assemblyName.Name} from {fileName}");
             }
 
+            if (xrGeneralSettingsAssembly == null) {
+                throw new Exception("Didn't load assembly named Unity.XR.Management");
+            }
+
+            var xrGeneralSettingsType = xrGeneralSettingsAssembly.GetType("UnityEngine.XR.Management.XRGeneralSettings", true);
+            xrGeneralSettingsInstanceProperty = xrGeneralSettingsType.GetProperty("Instance");
+            xrGeneralSettingsManagerProperty = xrGeneralSettingsType.GetProperty("Manager");
+
+            var xrManagerSettingsType = xrGeneralSettingsAssembly.GetType("UnityEngine.XR.Management.XRManagerSettings", true);
+            xrManagerSettingsInitializeLoaderSyncMethod = xrManagerSettingsType.GetMethod("InitializeLoaderSync");
+            xrManagerSettingsStartSubsystemsMethod = xrManagerSettingsType.GetMethod("StartSubsystems");
+
+            if (xrGeneralSettingsInstanceProperty == null) {
+                throw new Exception("UnityEngine.XR.Management.XRGeneralSettings Instance");
+            }
+
+            if (xrGeneralSettingsManagerProperty == null) {
+                throw new Exception("UnityEngine.XR.Management.XRGeneralSettings Manager");
+            }
+
+            if (xrManagerSettingsInitializeLoaderSyncMethod == null) {
+                throw new Exception("UnityEngine.XR.Management.XRManagerSettings InitializeLoaderSync");
+            }
+
+            if (xrManagerSettingsStartSubsystemsMethod == null) {
+                throw new Exception("UnityEngine.XR.Management.XRManagerSettings StartSubsystems");
+            }
+
             var xrSettingsBundle = AssetBundle.LoadFromFile(extractionPath + @"\Assets\xr_settings");
 
-            var openXRLoader = xrSettingsBundle.LoadAsset("assets/xr/loaders/openxrloader.asset");
-            var openXRPackageSettings = xrSettingsBundle.LoadAsset("assets/xr/settings/openxr package settings.asset");
-            var xrGeneralSettingsPerBuildTarget = xrSettingsBundle.LoadAsset("assets/xr/xrgeneralsettingsperbuildtarget.asset");
-
-            var xrGeneralSettingsType = xrGeneralSettingsAssembly.GetType("UnityEngine.XR.Management.XRGeneralSettings");
-
-            var xrSDKInitializerMethod = xrGeneralSettingsType.GetMethod("AttemptInitializeXRSDKOnLoad", BindingFlags.NonPublic | BindingFlags.Static);
-            var xrSDKStarterMethod = xrGeneralSettingsType.GetMethod("AttemptStartXRSDKOnBeforeSplashScreen", BindingFlags.NonPublic | BindingFlags.Static);
-
-            if (xrSDKInitializerMethod == null) {
-                throw new Exception("Can't find XR SDK initializer method");
+            foreach (var asset in xrSettingsBundle.LoadAllAssets()) {
+                Logger.LogInfo($"Loaded {asset.name} of type {asset.GetType().FullName}");
             }
 
-            if (xrSDKStarterMethod == null) {
-                throw new Exception("Can't find XR SDK starter method");
-            }
+            SceneManager.sceneLoaded += (scene, mode) => {
+                if (!scene.name.Equals("MainMenu")) return;
 
-            Logger.LogInfo("Initializing XR SDK");
-            xrSDKInitializerMethod.Invoke(null, null);
+                StartXR();
+            };
+        }
 
-            Logger.LogInfo("Starting XR SDK");
-            xrSDKStarterMethod.Invoke(null, null);
+        public void StartXR() {
+            Logger.LogInfo("Attempting to start XR");
+
+            var xrGeneralSettingsInstance = xrGeneralSettingsInstanceProperty.GetValue(null);
+            var xrManagerSettingsInstance = xrGeneralSettingsManagerProperty.GetValue(xrGeneralSettingsInstance);
+
+            Logger.LogInfo("Initializing XR");
+            xrManagerSettingsInitializeLoaderSyncMethod.Invoke(xrManagerSettingsInstance, null);
+
+            Logger.LogInfo("Starting XR");
+            xrManagerSettingsStartSubsystemsMethod.Invoke(xrManagerSettingsInstance, null);
         }
 
         [DllImport("Kernel32.dll")]
