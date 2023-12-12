@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using BepInEx;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.SubsystemsImplementation;
 
 namespace LCVR {
     [BepInPlugin("semmiedev.lcvr", "LCVR", "1.0.0")]
@@ -19,60 +20,32 @@ namespace LCVR {
         private void Awake() {
             Instance = this;
 
-            var extractionPath = Paths.CachePath + @"\LCVR";
-
-            if (!Directory.Exists(extractionPath)) {
-                Directory.CreateDirectory(extractionPath);
-            }
-
             var assembly = typeof(LCVR).Assembly;
+
+            Assembly xrGeneralSettingsAssembly = null;
 
             foreach (var resourceName in assembly.GetManifestResourceNames()) {
                 var nameStart = resourceName.IndexOf('.', 15) + 1;
                 var resourceType = resourceName.Substring(15, nameStart - 16);
-                var subExtractionPath = extractionPath + @"\" + resourceType;
                 var resourceFileName = resourceName.Substring(nameStart);
-                var fullExtractionPath = subExtractionPath + @"\" + resourceFileName;
 
-                if (!Directory.Exists(subExtractionPath)) {
-                    Directory.CreateDirectory(subExtractionPath);
-                }
-
-                if (!File.Exists(fullExtractionPath)) {
-                    Logger.LogInfo($"Extracting resource {resourceFileName} of type {resourceType} to {fullExtractionPath}");
+                if (resourceType.Equals("Managed")) {
+                    Logger.LogInfo($"Loading managed library {resourceFileName}");
 
                     using (var input = assembly.GetManifestResourceStream(resourceName)) {
-                        using (var output = File.OpenWrite(fullExtractionPath)) {
-                            input?.CopyTo(output);
+                        var rawAssembly = new byte[input.Length];
+                        input.Read(rawAssembly, 0, rawAssembly.Length);
+                        var loadedAssembly = Assembly.Load(rawAssembly);
+
+                        var assemblyName = loadedAssembly.GetName();
+
+                        if (assemblyName.Name.Equals("Unity.XR.Management")) {
+                            xrGeneralSettingsAssembly = loadedAssembly;
                         }
+
+                        Logger.LogInfo($"Loaded managed library {assemblyName.Name}");
                     }
                 }
-            }
-
-            foreach (var file in Directory.EnumerateFiles(extractionPath + @"\Plugins")) {
-                Logger.LogInfo($"Loading plugin {Path.GetFileName(file)}");
-
-                var result = LoadLibraryA(file);
-
-                if (result == IntPtr.Zero) {
-                    Logger.LogError($"Failed to load plugin {Path.GetFileName(file)}");
-                }
-            }
-
-            Assembly xrGeneralSettingsAssembly = null;
-
-            foreach (var file in Directory.EnumerateFiles(extractionPath + @"\Managed")) {
-                var fileName = Path.GetFileName(file);
-                Logger.LogInfo($"Loading managed library {fileName}");
-
-                var loadedAssembly = Assembly.LoadFile(file);
-                var assemblyName = loadedAssembly.GetName();
-
-                if (assemblyName.Name.Equals("Unity.XR.Management")) {
-                    xrGeneralSettingsAssembly = loadedAssembly;
-                }
-
-                Logger.LogInfo($"Loaded {assemblyName.Name} from {fileName}");
             }
 
             if (xrGeneralSettingsAssembly == null) {
@@ -103,7 +76,7 @@ namespace LCVR {
                 throw new Exception("UnityEngine.XR.Management.XRManagerSettings StartSubsystems");
             }
 
-            var xrSettingsBundle = AssetBundle.LoadFromFile(extractionPath + @"\Assets\xr_settings");
+            var xrSettingsBundle = AssetBundle.LoadFromStream(assembly.GetManifestResourceStream("LCVR.Resources.Assets.xr_settings"));
 
             foreach (var asset in xrSettingsBundle.LoadAllAssets()) {
                 Logger.LogInfo($"Loaded {asset.name} of type {asset.GetType().FullName}");
@@ -128,8 +101,5 @@ namespace LCVR {
             Logger.LogInfo("Starting XR");
             xrManagerSettingsStartSubsystemsMethod.Invoke(xrManagerSettingsInstance, null);
         }
-
-        [DllImport("Kernel32.dll")]
-        private static extern IntPtr LoadLibraryA(string lpLibFileName);
     }
 }

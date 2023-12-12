@@ -49,6 +49,9 @@
         <Reference Include="UnityEngine.CoreModule">
           <HintPath>..\Libs\UnityEngine.CoreModule.dll</HintPath>
         </Reference>
+        <Reference Include="UnityEngine.SubsystemsModule">
+          <HintPath>..\Libs\UnityEngine.SubsystemsModule.dll</HintPath>
+        </Reference>
     </ItemGroup>
     <ItemGroup>
         <Compile Include="LCVR.cs" />
@@ -60,8 +63,6 @@
       <EmbeddedResource Include="Resources\Managed\Unity.XR.OpenXR.dll" />
       <EmbeddedResource Include="Resources\Managed\Unity.XR.OpenXR.Features.MetaQuestSupport.dll" />
       <EmbeddedResource Include="Resources\Managed\Unity.XR.OpenXR.Features.OculusQuestSupport.dll" />
-      <EmbeddedResource Include="Resources\Plugins\openxr_loader.dll" />
-      <EmbeddedResource Include="Resources\Plugins\UnityOpenXR.dll" />
       <EmbeddedResource Include="Resources\Assets\xr_settings" />
     </ItemGroup>
     <ItemGroup>
