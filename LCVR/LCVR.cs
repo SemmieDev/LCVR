@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using BepInEx;
@@ -22,7 +23,8 @@ namespace LCVR {
 
             var assembly = typeof(LCVR).Assembly;
 
-            Assembly xrGeneralSettingsAssembly = null;
+            Assembly unityXRManagementAssembly = null;
+            Assembly unityEngineSpatialTrackingAssembly = null;
 
             foreach (var resourceName in assembly.GetManifestResourceNames()) {
                 var nameStart = resourceName.IndexOf('.', 15) + 1;
@@ -39,8 +41,15 @@ namespace LCVR {
 
                         var assemblyName = loadedAssembly.GetName();
 
-                        if (assemblyName.Name.Equals("Unity.XR.Management")) {
-                            xrGeneralSettingsAssembly = loadedAssembly;
+                        switch (assemblyName.Name) {
+                            case "Unity.XR.Management": {
+                                unityXRManagementAssembly = loadedAssembly;
+                                break;
+                            }
+                            case "UnityEngine.SpatialTracking": {
+                                unityEngineSpatialTrackingAssembly = loadedAssembly;
+                                break;
+                            }
                         }
 
                         Logger.LogInfo($"Loaded managed library {assemblyName.Name}");
@@ -48,15 +57,19 @@ namespace LCVR {
                 }
             }
 
-            if (xrGeneralSettingsAssembly == null) {
+            if (unityXRManagementAssembly == null) {
                 throw new Exception("Didn't load assembly named Unity.XR.Management");
             }
 
-            var xrGeneralSettingsType = xrGeneralSettingsAssembly.GetType("UnityEngine.XR.Management.XRGeneralSettings", true);
+            if (unityEngineSpatialTrackingAssembly == null) {
+                throw new Exception("Didn't load assembly named UnityEngine.SpatialTracking");
+            }
+
+            var xrGeneralSettingsType = unityXRManagementAssembly.GetType("UnityEngine.XR.Management.XRGeneralSettings", true);
             xrGeneralSettingsInstanceProperty = xrGeneralSettingsType.GetProperty("Instance");
             xrGeneralSettingsManagerProperty = xrGeneralSettingsType.GetProperty("Manager");
 
-            var xrManagerSettingsType = xrGeneralSettingsAssembly.GetType("UnityEngine.XR.Management.XRManagerSettings", true);
+            var xrManagerSettingsType = unityXRManagementAssembly.GetType("UnityEngine.XR.Management.XRManagerSettings", true);
             xrManagerSettingsInitializeLoaderSyncMethod = xrManagerSettingsType.GetMethod("InitializeLoaderSync");
             xrManagerSettingsStartSubsystemsMethod = xrManagerSettingsType.GetMethod("StartSubsystems");
 
@@ -82,10 +95,31 @@ namespace LCVR {
                 Logger.LogInfo($"Loaded {asset.name} of type {asset.GetType().FullName}");
             }
 
-            SceneManager.sceneLoaded += (scene, mode) => {
-                if (!scene.name.Equals("MainMenu")) return;
+            xrSettingsBundle.Unload(false);
 
-                StartXR();
+            SceneManager.sceneLoaded += (scene, mode) => {
+                if (scene.name.Equals("MainMenu")) StartXR();
+
+                if (scene.name.Equals("SampleSceneRelay")) {
+                    var trackedPoseDriverType = unityEngineSpatialTrackingAssembly.GetType("UnityEngine.SpatialTracking.TrackedPoseDriver", true);
+                    Logger.LogInfo($"Tracked pose driver type: {trackedPoseDriverType}");
+
+                    var mainCameraGameObject = scene.GetRootGameObjects()[0].transform.Find("/PlayersContainer/Player/ScavengerModel/metarig/CameraContainer/MainCamera").gameObject;
+                    var camera = mainCameraGameObject.GetComponent<Camera>();
+                    //var uiCamera = scene.GetRootGameObjects()[0].transform.Find("/Systems/UI/UICamera").gameObject.SetActive(false);
+                    var trackedPoseDriver = mainCameraGameObject.AddComponent(trackedPoseDriverType);
+
+                    Logger.LogInfo($"Tracked pose driver: {trackedPoseDriver}");
+
+                    trackedPoseDriverType.GetMethod("SetPoseSource", BindingFlags.Instance | BindingFlags.Public).Invoke(
+                        trackedPoseDriver,
+                        new object[] {
+                            //unityEngineSpatialTrackingAssembly.GetType("UnityEngine.SpatialTracking.TrackedPoseDriver.DeviceType")
+                            0,
+                            2
+                        }
+                    );
+                }
             };
         }
 

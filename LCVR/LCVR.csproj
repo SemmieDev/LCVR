@@ -63,11 +63,8 @@
       <EmbeddedResource Include="Resources\Managed\Unity.XR.OpenXR.dll" />
       <EmbeddedResource Include="Resources\Managed\Unity.XR.OpenXR.Features.MetaQuestSupport.dll" />
       <EmbeddedResource Include="Resources\Managed\Unity.XR.OpenXR.Features.OculusQuestSupport.dll" />
+      <EmbeddedResource Include="Resources\Managed\UnityEngine.SpatialTracking.dll" />
       <EmbeddedResource Include="Resources\Assets\xr_settings" />
-    </ItemGroup>
-    <ItemGroup>
-      <Folder Include="Patches\" />
-      <Folder Include="Resources\Assets\" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
