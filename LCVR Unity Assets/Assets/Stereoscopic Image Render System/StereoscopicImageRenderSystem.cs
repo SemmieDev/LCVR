@@ -1,24 +1,28 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 using UnityEngine.XR;
 
 public class StereoscopicImageRenderSystem : MonoBehaviour {
     public Camera mainCamera;
+    public Camera uiCamera;
+    public Canvas canvas;
+    public Shader stereoscopicImageShader;
     public RawImage playerScreen;
     public InputActionAsset inputActions;
-    public bool depth = true;
 
+    private Transform mainCameraTransform;
     private RenderTexture leftEyeTexture;
     private RenderTexture rightEyeTexture;
-    private InputAction leftEyePosition;
-    private InputAction leftEyeRotation;
-    private InputAction rightEyePosition;
-    private InputAction rightEyeRotation;
+    private InputAction centerEyePosition;
+    private InputAction centerEyeRotation;
 
     private IEnumerator Start() {
         mainCamera.enabled = false;
+        mainCameraTransform = mainCamera.transform;
 
         var descriptor = ((RenderTexture) playerScreen.texture).descriptor;
 
@@ -28,11 +32,12 @@ public class StereoscopicImageRenderSystem : MonoBehaviour {
 
         descriptor.width = XRSettings.eyeTextureWidth;
         descriptor.height = XRSettings.eyeTextureHeight;
+        descriptor.useMipMap = false;
 
         leftEyeTexture = new RenderTexture(descriptor);
         rightEyeTexture = new RenderTexture(descriptor);
 
-        var material = new Material(Shader.Find("LCVR/StereoscopicImage"));
+        var material = new Material(stereoscopicImageShader);
         playerScreen.texture = null;
         playerScreen.material = material;
         material.SetTexture("_LeftEyeTex", leftEyeTexture);
@@ -40,36 +45,64 @@ public class StereoscopicImageRenderSystem : MonoBehaviour {
 
         var actionMap = inputActions.FindActionMap("VR Data");
         actionMap.Enable();
-        leftEyePosition = actionMap.FindAction("leftEyePosition", true);
-        leftEyePosition.Enable();
-        leftEyeRotation = actionMap.FindAction("leftEyeRotation", true);
-        leftEyeRotation.Enable();
-        rightEyePosition = actionMap.FindAction("rightEyePosition", true);
-        rightEyePosition.Enable();
-        rightEyeRotation = actionMap.FindAction("rightEyeRotation", true);
-        rightEyeRotation.Enable();
+        centerEyePosition = actionMap.FindAction("centerEyePosition", true);
+        centerEyeRotation = actionMap.FindAction("centerEyeRotation", true);
     }
 
     private void OnPreRender() {
-        if (rightEyeRotation == null) return;
+        if (centerEyePosition == null) return;
 
-        var mainCameraTransform = mainCamera.transform;
-        var previousPosition = mainCameraTransform.position;
-        var previousRotation = mainCameraTransform.rotation;
+        canvas.planeDistance = uiCamera.stereoConvergence;
+
         var previousTarget = mainCamera.targetTexture;
+        var originalWorldToCameraMatrix = mainCamera.worldToCameraMatrix;
+        var halfStereoSeparation = uiCamera.stereoSeparation / 2;
 
-        if (depth) mainCameraTransform.position = leftEyePosition.ReadValue<Vector3>();
-        mainCameraTransform.rotation = leftEyeRotation.ReadValue<Quaternion>();
+        //mainCameraTransform.localPosition = centerEyePosition.ReadValue<Vector3>();
+        //mainCameraTransform.localRotation = centerEyeRotation.ReadValue<Quaternion>();
+
+        /*var previousNearClipPlane = uiCamera.nearClipPlane;
+        var previousFarClipPlane = uiCamera.farClipPlane;
+        uiCamera.nearClipPlane = mainCamera.nearClipPlane;
+        uiCamera.farClipPlane = mainCamera.farClipPlane;
+        var leftEyeProjectionMatrix = uiCamera.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left);
+        var rightEyeProjectionMatrix = uiCamera.GetStereoProjectionMatrix(Camera.StereoscopicEye.Right);
+        uiCamera.nearClipPlane = previousNearClipPlane;
+        uiCamera.farClipPlane = previousFarClipPlane;*/
+
+        mainCamera.fieldOfView = uiCamera.fieldOfView;
+
+        mainCamera.worldToCameraMatrix = originalWorldToCameraMatrix * Matrix4x4.Translate(new Vector3(-halfStereoSeparation, 0, 0));
+        //mainCamera.projectionMatrix = leftEyeProjectionMatrix;
         mainCamera.targetTexture = leftEyeTexture;
         mainCamera.Render();
 
-        if (depth) mainCameraTransform.position = rightEyePosition.ReadValue<Vector3>();
-        mainCameraTransform.rotation = rightEyeRotation.ReadValue<Quaternion>();
+        mainCamera.worldToCameraMatrix = originalWorldToCameraMatrix * Matrix4x4.Translate(new Vector3(halfStereoSeparation, 0, 0));
+        //mainCamera.projectionMatrix = rightEyeProjectionMatrix;
         mainCamera.targetTexture = rightEyeTexture;
         mainCamera.Render();
 
-        mainCameraTransform.position = previousPosition;
-        mainCameraTransform.rotation = previousRotation;
+        mainCamera.ResetWorldToCameraMatrix();
+        //mainCamera.ResetProjectionMatrix();
         mainCamera.targetTexture = previousTarget;
+    }
+
+    private void OnDrawGizmos() {
+        if (mainCameraTransform == null) return;
+
+        var originalWorldToCameraMatrix = mainCamera.worldToCameraMatrix;
+        var halfStereoSeparation = uiCamera.stereoSeparation / 2;
+        var leftEyeMatrix = originalWorldToCameraMatrix * Matrix4x4.Translate(new Vector3(-halfStereoSeparation, 0, 0));
+        var rightEyeMatrix = originalWorldToCameraMatrix * Matrix4x4.Translate(new Vector3(halfStereoSeparation, 0, 0));
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawSphere(mainCameraTransform.position, 0.01f);
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawSphere(leftEyeMatrix.MultiplyPoint(mainCameraTransform.position) + mainCameraTransform.position, 0.01f);
+        Gizmos.DrawRay(leftEyeMatrix.MultiplyPoint(mainCameraTransform.position) + mainCameraTransform.position, leftEyeMatrix.MultiplyVector(new Vector3(0, 0, -1)));
+        Gizmos.color = Color.blue;
+        Gizmos.DrawRay(rightEyeMatrix.MultiplyPoint(mainCameraTransform.position) + mainCameraTransform.position, rightEyeMatrix.MultiplyVector(new Vector3(0, 0, -1)));
+        Gizmos.DrawSphere(rightEyeMatrix.MultiplyPoint(mainCameraTransform.position) + mainCameraTransform.position, 0.01f);
     }
 }

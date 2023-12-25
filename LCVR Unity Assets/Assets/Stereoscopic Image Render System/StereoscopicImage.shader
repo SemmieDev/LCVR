@@ -36,20 +36,23 @@ Shader "LCVR/StereoscopicImage" {
             UNITY_VERTEX_OUTPUT_STEREO
          };
 
-         v2f vert (appdata v) {
+         v2f vert(appdata v) {
             v2f o;
 
             UNITY_SETUP_INSTANCE_ID(v);
             UNITY_INITIALIZE_OUTPUT(v2f, o);
             UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
-            o.vertex = UnityObjectToClipPos(v.vertex);
+            float4 pos = UnityObjectToClipPos(v.vertex);
+
+            // This makes sure that the image is a fullscreen overlay. Very jank, but it works.
+            o.vertex = float4(pos.x < 0 ? -1 : 1, pos.y < 0 ? -1 : 1, pos.z, 1);
             o.uv = v.uv;
 
             return o;
          }
 
-         fixed4 frag (v2f i) : SV_Target {
+         fixed4 frag(v2f i) : SV_Target {
             UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 
             fixed4 color;
