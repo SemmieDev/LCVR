@@ -46,7 +46,7 @@ Shader "LCVR/StereoscopicImage" {
             float4 pos = UnityObjectToClipPos(v.vertex);
 
             // This makes sure that the image is a fullscreen overlay. Very jank, but it works.
-            o.vertex = float4(pos.x < 0 ? -1 : 1, pos.y < 0 ? -1 : 1, pos.z, 1);
+            o.vertex = float4(pos.x < 0 ? -1 : 1, pos.y < 0 ? -1 : 1, 0, 1);
             o.uv = v.uv;
 
             return o;
