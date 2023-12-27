@@ -55,7 +55,6 @@ public class StereoscopicImageRenderSystem : MonoBehaviour {
         mainCameraTransform.localRotation = centerEyeRotation.ReadValue<Quaternion>();
 
         var previousTarget = mainCamera.targetTexture;
-        var originalWorldToCameraMatrix = mainCamera.worldToCameraMatrix;
 
         var previousPosition = uiCameraTransform.position;
         var previousRotation = uiCameraTransform.rotation;
