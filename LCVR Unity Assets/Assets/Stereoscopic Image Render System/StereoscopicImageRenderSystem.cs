@@ -1,20 +1,18 @@
-using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Rendering;
 using UnityEngine.UI;
 using UnityEngine.XR;
 
 public class StereoscopicImageRenderSystem : MonoBehaviour {
     public Camera mainCamera;
     public Camera uiCamera;
-    public Canvas canvas;
     public Shader stereoscopicImageShader;
     public RawImage playerScreen;
     public InputActionAsset inputActions;
 
     private Transform mainCameraTransform;
+    private Transform uiCameraTransform;
     private RenderTexture leftEyeTexture;
     private RenderTexture rightEyeTexture;
     private InputAction centerEyePosition;
@@ -23,6 +21,7 @@ public class StereoscopicImageRenderSystem : MonoBehaviour {
     private IEnumerator Start() {
         mainCamera.enabled = false;
         mainCameraTransform = mainCamera.transform;
+        uiCameraTransform = uiCamera.transform;
 
         var descriptor = ((RenderTexture) playerScreen.texture).descriptor;
 
@@ -52,57 +51,46 @@ public class StereoscopicImageRenderSystem : MonoBehaviour {
     private void OnPreRender() {
         if (centerEyePosition == null) return;
 
-        canvas.planeDistance = uiCamera.stereoConvergence;
+        mainCameraTransform.localPosition = centerEyePosition.ReadValue<Vector3>();
+        mainCameraTransform.localRotation = centerEyeRotation.ReadValue<Quaternion>();
 
         var previousTarget = mainCamera.targetTexture;
         var originalWorldToCameraMatrix = mainCamera.worldToCameraMatrix;
-        var halfStereoSeparation = uiCamera.stereoSeparation / 2;
 
-        //mainCameraTransform.localPosition = centerEyePosition.ReadValue<Vector3>();
-        //mainCameraTransform.localRotation = centerEyeRotation.ReadValue<Quaternion>();
-
-        /*var previousNearClipPlane = uiCamera.nearClipPlane;
+        var previousPosition = uiCameraTransform.position;
+        var previousRotation = uiCameraTransform.rotation;
+        var previousNearClipPlane = uiCamera.nearClipPlane;
         var previousFarClipPlane = uiCamera.farClipPlane;
+
+        uiCameraTransform.position = mainCameraTransform.position;
+        uiCameraTransform.rotation = mainCameraTransform.rotation;
         uiCamera.nearClipPlane = mainCamera.nearClipPlane;
         uiCamera.farClipPlane = mainCamera.farClipPlane;
+
+        var leftEyeViewMatrix = uiCamera.GetStereoViewMatrix(Camera.StereoscopicEye.Left);
+        var rightEyeViewMatrix = uiCamera.GetStereoViewMatrix(Camera.StereoscopicEye.Right);
         var leftEyeProjectionMatrix = uiCamera.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left);
         var rightEyeProjectionMatrix = uiCamera.GetStereoProjectionMatrix(Camera.StereoscopicEye.Right);
+
+        uiCameraTransform.position = previousPosition;
+        uiCameraTransform.rotation = previousRotation;
         uiCamera.nearClipPlane = previousNearClipPlane;
-        uiCamera.farClipPlane = previousFarClipPlane;*/
+        uiCamera.farClipPlane = previousFarClipPlane;
 
         mainCamera.fieldOfView = uiCamera.fieldOfView;
 
-        mainCamera.worldToCameraMatrix = originalWorldToCameraMatrix * Matrix4x4.Translate(new Vector3(-halfStereoSeparation, 0, 0));
-        //mainCamera.projectionMatrix = leftEyeProjectionMatrix;
+        mainCamera.worldToCameraMatrix = leftEyeViewMatrix;
+        mainCamera.projectionMatrix = leftEyeProjectionMatrix;
         mainCamera.targetTexture = leftEyeTexture;
         mainCamera.Render();
 
-        mainCamera.worldToCameraMatrix = originalWorldToCameraMatrix * Matrix4x4.Translate(new Vector3(halfStereoSeparation, 0, 0));
-        //mainCamera.projectionMatrix = rightEyeProjectionMatrix;
+        mainCamera.worldToCameraMatrix = rightEyeViewMatrix;
+        mainCamera.projectionMatrix = rightEyeProjectionMatrix;
         mainCamera.targetTexture = rightEyeTexture;
         mainCamera.Render();
 
         mainCamera.ResetWorldToCameraMatrix();
-        //mainCamera.ResetProjectionMatrix();
+        mainCamera.ResetProjectionMatrix();
         mainCamera.targetTexture = previousTarget;
-    }
-
-    private void OnDrawGizmos() {
-        if (mainCameraTransform == null) return;
-
-        var originalWorldToCameraMatrix = mainCamera.worldToCameraMatrix;
-        var halfStereoSeparation = uiCamera.stereoSeparation / 2;
-        var leftEyeMatrix = originalWorldToCameraMatrix * Matrix4x4.Translate(new Vector3(-halfStereoSeparation, 0, 0));
-        var rightEyeMatrix = originalWorldToCameraMatrix * Matrix4x4.Translate(new Vector3(halfStereoSeparation, 0, 0));
-
-        Gizmos.color = Color.green;
-        Gizmos.DrawSphere(mainCameraTransform.position, 0.01f);
-
-        Gizmos.color = Color.red;
-        Gizmos.DrawSphere(leftEyeMatrix.MultiplyPoint(mainCameraTransform.position) + mainCameraTransform.position, 0.01f);
-        Gizmos.DrawRay(leftEyeMatrix.MultiplyPoint(mainCameraTransform.position) + mainCameraTransform.position, leftEyeMatrix.MultiplyVector(new Vector3(0, 0, -1)));
-        Gizmos.color = Color.blue;
-        Gizmos.DrawRay(rightEyeMatrix.MultiplyPoint(mainCameraTransform.position) + mainCameraTransform.position, rightEyeMatrix.MultiplyVector(new Vector3(0, 0, -1)));
-        Gizmos.DrawSphere(rightEyeMatrix.MultiplyPoint(mainCameraTransform.position) + mainCameraTransform.position, 0.01f);
     }
 }
