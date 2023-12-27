@@ -22,19 +22,18 @@ public class StereoscopicImageRenderSystem : MonoBehaviour {
         mainCamera.enabled = false;
         mainCameraTransform = mainCamera.transform;
         uiCameraTransform = uiCamera.transform;
-
-        var descriptor = ((RenderTexture) playerScreen.texture).descriptor;
+        uiCamera.clearFlags = CameraClearFlags.Nothing;
 
         while (XRSettings.eyeTextureWidth == 0) {
             yield return new WaitForEndOfFrame();
         }
 
-        descriptor.width = XRSettings.eyeTextureWidth;
-        descriptor.height = XRSettings.eyeTextureHeight;
-        descriptor.useMipMap = false;
+        leftEyeTexture = (RenderTexture) Instantiate(playerScreen.texture);
+        leftEyeTexture.name = playerScreen.texture.name + " (Left Eye)";
+        leftEyeTexture.width = (int)((float)leftEyeTexture.height / XRSettings.eyeTextureHeight * XRSettings.eyeTextureWidth);
 
-        leftEyeTexture = new RenderTexture(descriptor);
-        rightEyeTexture = new RenderTexture(descriptor);
+        rightEyeTexture = Instantiate(leftEyeTexture);
+        leftEyeTexture.name = playerScreen.texture.name + " (Right Eye)";
 
         var material = new Material(stereoscopicImageShader);
         playerScreen.texture = null;
