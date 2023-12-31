@@ -40,6 +40,21 @@
         <Reference Include="System.Core"/>
         <Reference Include="System.Data"/>
         <Reference Include="System.Xml"/>
+        <Reference Include="Unity.XR.CoreUtils">
+          <HintPath>..\Libs\Unity.XR.CoreUtils.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.XR.Management">
+          <HintPath>..\Libs\Unity.XR.Management.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.XR.OpenXR">
+          <HintPath>..\Libs\Unity.XR.OpenXR.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.XR.OpenXR.Features.MetaQuestSupport">
+          <HintPath>..\Libs\Unity.XR.OpenXR.Features.MetaQuestSupport.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.XR.OpenXR.Features.OculusQuestSupport">
+          <HintPath>..\Libs\Unity.XR.OpenXR.Features.OculusQuestSupport.dll</HintPath>
+        </Reference>
         <Reference Include="UnityEngine">
           <HintPath>..\Libs\UnityEngine.dll</HintPath>
         </Reference>
@@ -52,19 +67,20 @@
         <Reference Include="UnityEngine.SubsystemsModule">
           <HintPath>..\Libs\UnityEngine.SubsystemsModule.dll</HintPath>
         </Reference>
+        <Reference Include="UnityEngine.UI">
+          <HintPath>..\Libs\UnityEngine.UI.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.VRModule">
+          <HintPath>..\Libs\UnityEngine.VRModule.dll</HintPath>
+        </Reference>
     </ItemGroup>
     <ItemGroup>
         <Compile Include="LCVR.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>
+        <Compile Include="StereoscopicImageRenderSystem.cs" />
     </ItemGroup>
     <ItemGroup>
-      <EmbeddedResource Include="Resources\Managed\Unity.XR.CoreUtils.dll" />
-      <EmbeddedResource Include="Resources\Managed\Unity.XR.Management.dll" />
-      <EmbeddedResource Include="Resources\Managed\Unity.XR.OpenXR.dll" />
-      <EmbeddedResource Include="Resources\Managed\Unity.XR.OpenXR.Features.MetaQuestSupport.dll" />
-      <EmbeddedResource Include="Resources\Managed\Unity.XR.OpenXR.Features.OculusQuestSupport.dll" />
-      <EmbeddedResource Include="Resources\Managed\UnityEngine.SpatialTracking.dll" />
-      <EmbeddedResource Include="Resources\Assets\xr_settings" />
+      <EmbeddedResource Include="Resources\Assets\lcvr_assets" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
