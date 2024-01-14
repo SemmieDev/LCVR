@@ -47,7 +47,7 @@ public class StereoscopicImageRenderSystem : MonoBehaviour {
         centerEyeRotation = actionMap.FindAction("centerEyeRotation", true);
     }
 
-    private void OnPreRender() {
+    private void Update() {
         if (centerEyePosition == null) return;
 
         mainCameraTransform.localPosition = centerEyePosition.ReadValue<Vector3>();

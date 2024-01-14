@@ -34,10 +34,10 @@ namespace LCVR {
             rightEyeTexture.name = playerScreen.texture.name + " (Right Eye)";
 
             var material = new Material(stereoscopicImageShader);
-            playerScreen.texture = null;
-            playerScreen.material = material;
             material.SetTexture("_LeftEyeTex", leftEyeTexture);
             material.SetTexture("_RightEyeTex", rightEyeTexture);
+            playerScreen.texture = null;
+            playerScreen.material = material;
 
             /*var actionMap = inputActions.FindActionMap("VR Data");
             actionMap.Enable();
@@ -63,11 +63,8 @@ namespace LCVR {
 
             var leftEyeViewMatrix = uiCamera.GetStereoViewMatrix(Camera.StereoscopicEye.Left);
             var rightEyeViewMatrix = uiCamera.GetStereoViewMatrix(Camera.StereoscopicEye.Right);
-            Debug.Log(uiCamera.stereoEnabled);
-            Debug.Log(uiCamera.stereoTargetEye);
-            Debug.Log(uiCamera.stereoActiveEye);
-            var leftEyeProjectionMatrix = uiCamera.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left);
-            var rightEyeProjectionMatrix = uiCamera.GetStereoProjectionMatrix(Camera.StereoscopicEye.Right);
+            //var leftEyeProjectionMatrix = uiCamera.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left);
+            //var rightEyeProjectionMatrix = uiCamera.GetStereoProjectionMatrix(Camera.StereoscopicEye.Right);
 
             uiCameraTransform.position = previousPosition;
             uiCameraTransform.rotation = previousRotation;
@@ -75,12 +72,12 @@ namespace LCVR {
             uiCamera.farClipPlane = previousFarClipPlane;
 
             mainCamera.worldToCameraMatrix = leftEyeViewMatrix;
-            mainCamera.projectionMatrix = leftEyeProjectionMatrix;
+            //mainCamera.projectionMatrix = leftEyeProjectionMatrix;
             mainCamera.targetTexture = leftEyeTexture;
             mainCamera.Render();
 
             mainCamera.worldToCameraMatrix = rightEyeViewMatrix;
-            mainCamera.projectionMatrix = rightEyeProjectionMatrix;
+            //mainCamera.projectionMatrix = rightEyeProjectionMatrix;
             mainCamera.targetTexture = rightEyeTexture;
             mainCamera.Render();
 
